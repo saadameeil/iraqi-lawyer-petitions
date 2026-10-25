@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>منصة تحرير العرائض القضائية - المحامي سعد فراس أميل</title>
+  
+  <!-- Apple iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="العرائض القضائية">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1120">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header no-print">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <img src="apple-touch-icon.png" alt="شعار الميزان" class="brand-logo">
+        <div class="brand-info">
+          <h1>العرائض القضائية <span class="badge">عراقية أصولية</span></h1>
+          <p>المحامي سعد فراس أميل</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ai btn-sm" onclick="openAiModal()" title="لصق وتحليل نص الذكاء الاصطناعي">
+          <span>🪄 تعبئة بالذكاء الاصطناعي</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="openArchiveModal()" title="سجل القضايا المحفوظة">
+          <span>📁 الأرشيف</span>
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="printPetition()" title="طباعة أو تصدير PDF">
+          <span>🖨️ طباعة A4</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-wrapper">
+    
+    <!-- Mobile Tabs (Visible only on mobile/tablet) -->
+    <div class="tabs-header no-print" style="display: flex;">
+      <button class="tab-btn active" id="tabEditor">
+        <span>📝 استمارة التحرير</span>
+      </button>
+      <button class="tab-btn" id="tabPreview">
+        <span>👁️ معاينة ورقة A4</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="resetForm()" style="margin-right: auto;">
+        <span>📄 عريضة جديدة</span>
+      </button>
+    </div>
+
+    <div class="content-grid">
+      
+      <!-- ================= Left Pane: Editor Form ================= -->
+      <section id="editorPane" class="no-print">
+        
+        <!-- Court Header Card -->
+        <div class="card">
+          <div class="card-title">
+            <div class="icon-title">
+              <span>🏛️</span>
+              <span>المحكمة المختصة (جهة التوجيه)</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">عنوان المحكمة أو قاضي التحقيق <span class="req">*</span></label>
+            <input type="text" id="courtRecipient" class="form-input" placeholder="مثال: السيد قاضي محكمة تحقيق بغداد الجديدة المحترم">
+            <div class="chips-row">
+              <span class="chip" onclick="setCourt('السيد قاضي محكمة تحقيق الكرخ المحترم')">تحقيق الكرخ</span>
+              <span class="chip" onclick="setCourt('السيد قاضي محكمة تحقيق الرصافة المحترم')">تحقيق الرصافة</span>
+              <span class="chip" onclick="setCourt('السيد قاضي محكمة تحقيق بغداد الجديدة المحترم')">بغداد الجديدة</span>
+              <span class="chip" onclick="setCourt('السيد قاضي محكمة بداءة الكرخ المحترم')">بداءة الكرخ</span>
+              <span class="chip" onclick="setCourt('السيد قاضي محكمة بداءة الرصافة المحترم')">بداءة الرصافة</span>
+              <span class="chip" onclick="setCourt('السيد قاضي محكمة الأحوال الشخصية في الكرخ المحترم')">أحوال الكرخ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parties Card (Complainant & Defendant + Addresses) -->
+        <div class="card">
+          <div class="card-title">
+            <div class="icon-title">
+              <span>⚖️</span>
+              <span>أطراف الدعوى والتبليغات القضائية</span>
+            </div>
+          </div>
+
+          <!-- Complainant -->
+          <div class="form-group">
+            <label class="form-label">اسم المشتكي / المدعي <span class="req">*</span></label>
+            <input type="text" id="complainantName" class="form-input" placeholder="الاسم الرباعي واللقب للمشتكي">
+          </div>
+          <div class="form-group">
+            <label class="form-label">عنوان المشتكي ورقم هاتفه للتبليغ <span class="hint">(اختياري)</span></label>
+            <input type="text" id="complainantAddress" class="form-input" placeholder="مثال: بغداد - اليرموك - محلة (616) زقاق (32) دار (23) - هاتف: 0770xxxxxxx">
+          </div>
+
+          <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 12px 0;"></div>
+
+          <!-- Defendant -->
+          <div class="form-group">
+            <label class="form-label">اسم المشكو منه / المدعى عليه <span class="req">*</span></label>
+            <input type="text" id="defendantName" class="form-input" placeholder="الاسم الرباعي أو الثلاثي واللقب للمشكو منه">
+          </div>
+          <div class="form-group">
+            <label class="form-label">عنوان المشكو منه ومحل عمله للتبليغ <span class="hint">(اختياري)</span></label>
+            <input type="text" id="defendantAddress" class="form-input" placeholder="مثال: بغداد - الصليخ - محلة (326) زقاق (36) دار (92)">
+          </div>
+        </div>
+
+        <!-- Subject & Salutation Card -->
+        <div class="card">
+          <div class="card-title">
+            <div class="icon-title">
+              <span>🏷️</span>
+              <span>موضوع العريضة والتحية</span>
+            </div>
+          </div>
+
+          <!-- Conditional Subject -->
+          <div class="form-group">
+            <label class="form-label">موضوع الدعوى / الشكوى <span class="hint">(اختياري: يظهر إذا كُتب ويختفي تماماً إن تُرِك فارغاً)</span></label>
+            <input type="text" id="subject" class="form-input" placeholder="مثال: م / شكوى جزائية وفق المادة (456) ق.ع">
+          </div>
+
+          <!-- Salutation -->
+          <div class="form-group">
+            <label class="form-label">عبارة التحية الافتتاحية</label>
+            <input type="text" id="salutation" class="form-input" value="تحية طيبة واحترام /">
+          </div>
+        </div>
+
+        <!-- Facts & Requests Body -->
+        <div class="card">
+          <div class="card-title">
+            <div class="icon-title">
+              <span>📜</span>
+              <span>نص العريضة والوقائع والطلبات</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="openAiModal()">
+              <span>🪄 لصق من الذكاء الاصطناعي</span>
+            </button>
+          </div>
+          <div class="form-group">
+            <label class="form-label">سرد الوقائع والأسانيد والطلبات الختامية <span class="req">*</span></label>
+            <textarea id="bodyText" class="form-textarea" rows="8" placeholder="أعرض لعدالتكم الموقرة بأنه...&#10;وحيث أن فعل المشكو منه يشكل جريمة...&#10;لذا ألتمس من عدالتكم:&#10;1- اتخاذ الإجراءات القانونية بحقه...&#10;2- تدوين أقوالي وأقوال الشهود..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">العبارة الختامية</label>
+            <input type="text" id="closingSalutation" class="form-input" value="ولعدالتكم فائق التقدير والاحترام">
+          </div>
+        </div>
+
+        <!-- Date & Signature Block -->
+        <div class="card">
+          <div class="card-title">
+            <div class="icon-title">
+              <span>✍️</span>
+              <span>التاريخ وتذييل التوقيع</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">تاريخ تحرير العريضة <span class="hint">(تلقائي وقابل للتعديل)</span></label>
+            <input type="text" id="petitionDate" class="form-input">
+          </div>
+          <div class="row-2col">
+            <div class="form-group">
+              <label class="form-label">صفة مقدم العريضة (السطر العلوي) <span class="req">*</span></label>
+              <input type="text" id="sigRole" class="form-input" placeholder="مثال: المشتكي / وكيله">
+            </div>
+            <div class="form-group">
+              <label class="form-label">اسم المحامي / الموكل (السطر الثاني تحته) <span class="req">*</span></label>
+              <input type="text" id="sigName" class="form-input" placeholder="مثال: المحامي سعد فراس أميل">
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button class="btn btn-primary" style="flex: 2; padding: 12px;" onclick="printPetition()">
+            <span>🖨️ معاينة وطباعة الورقة (A4)</span>
+          </button>
+          <button class="btn btn-secondary" style="flex: 1; padding: 12px;" onclick="saveToArchive()">
+            <span>💾 حفظ بالأرشيف</span>
+          </button>
+        </div>
+
+      </section>
+
+      <!-- ================= Right Pane: A4 Paper Preview ================= -->
+      <section id="previewPane">
+        <div class="preview-container">
+          
+          <!-- Toolbar -->
+          <div class="preview-toolbar no-print">
+            <div id="fitBadge" class="status-badge status-ok">
+              ✓ صفحة A4 واحدة متناسقة (100%)
+            </div>
+            <div class="scale-controls">
+              <span>مقياس الخط:</span>
+              <input type="range" id="scaleSlider" class="scale-slider" min="75" max="115" value="100">
+              <span id="scaleLabel" style="font-weight: 700; color: #fff; min-width: 35px;">100%</span>
+              <button class="btn btn-secondary btn-sm" onclick="autoFitSinglePage()" title="ضبط تلقائي لصفحة واحدة">
+                <span>⚡ ملاءمة تلقائية</span>
+              </button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="printPetition()">
+              <span>🖨️ طباعة / PDF</span>
+            </button>
+          </div>
+
+          <!-- A4 Virtual Sheet -->
+          <div class="a4-sheet-wrapper">
+            <div class="a4-sheet" id="a4Sheet">
+              
+              <!-- Court Title -->
+              <div class="doc-court-title" id="docCourt">
+                السيد قاضي محكمة تحقيق بغداد الجديدة المحترم
+              </div>
+
+              <!-- Parties Box -->
+              <div class="doc-parties-box">
+                <div class="doc-party-row">
+                  <span class="party-role">المشتكي:</span>
+                  <span class="party-name" id="docComplainantName">................................................</span>
+                  <span class="party-address" id="docComplainantAddress" style="display: none;"></span>
+                </div>
+                <div class="doc-party-row">
+                  <span class="party-role">المشكو منه:</span>
+                  <span class="party-name" id="docDefendantName">................................................</span>
+                  <span class="party-address" id="docDefendantAddress" style="display: none;"></span>
+                </div>
+              </div>
+
+              <!-- Conditional Subject -->
+              <div class="doc-subject-row" id="docSubjectRow" style="display: none;">
+                <span id="docSubjectText"></span>
+              </div>
+
+              <!-- Salutation -->
+              <div class="doc-salutation" id="docSalutation">
+                تحية طيبة واحترام /
+              </div>
+
+              <!-- Facts & Body -->
+              <div class="doc-body-content" id="docBody">
+                أعرض لعدالتكم الموقرة بأنه...
+              </div>
+
+              <!-- Closing -->
+              <div class="doc-closing-salutation" id="docClosing">
+                ولعدالتكم فائق التقدير والاحترام
+              </div>
+
+              <!-- Document Footer: Date & Signature -->
+              <div class="doc-footer-row">
+                <div class="doc-date-col" id="docDate">
+                  التاريخ: 25 / 10 / 2026
+                </div>
+                <div class="doc-signature-col">
+                  <div class="doc-sig-role" id="docSigRole">المشتكي / وكيله</div>
+                  <div class="doc-sig-name" id="docSigName">المحامي سعد فراس أميل</div>
+                  <div class="signature-space"></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= Mobile Fixed Bottom Navigation Bar ================= -->
+  <nav class="mobile-nav no-print">
+    <button class="mobile-nav-btn active" id="mNavEditor" onclick="switchTab('editor')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+      <span>تحرير</span>
+    </button>
+    <button class="mobile-nav-btn" id="mNavPreview" onclick="switchTab('preview')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+      <span>معاينة A4</span>
+    </button>
+    <button class="mobile-nav-btn" onclick="openAiModal()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+      <span>ذكاء اصطناعي</span>
+    </button>
+    <button class="mobile-nav-btn" onclick="openArchiveModal()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+      <span>الأرشيف</span>
+    </button>
+    <button class="mobile-nav-btn btn-print-nav" onclick="printPetition()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+      <span>طباعة A4</span>
+    </button>
+  </nav>
+
+  <!-- ================= Modal: Smart AI Parser ================= -->
+  <div id="aiModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2><span>🪄</span> محلل نصوص الذكاء الاصطناعي الأصولي</h2>
+        <button class="modal-close" onclick="closeAiModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.6;">
+          الصق هنا مسودة العريضة الكاملة التي قام بصياغتها الذكاء الاصطناعي (ChatGPT أو Claude أو غيره)، وسيقوم المحرك الذكي بتحليلها وتوزيع كل جزء تلقائياً في حقله المخصص (المحكمة، أطراف الدعوى، العناوين، الموضوع، الوقائع والطلبات، والتوقيع):
+        </p>
+        <textarea id="aiRawInput" class="form-textarea" rows="10" placeholder="الصق نص العريضة الكامل هنا..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAiModal()">إلغاء</button>
+        <button class="btn btn-primary" onclick="processAiDraft()">
+          <span>⚡ تحليل وتعبئة الحقول فوراً</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: Archive ================= -->
+  <div id="archiveModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2><span>📁</span> أرشيف القضايا والمسودات المحفوظة</h2>
+        <button class="modal-close" onclick="closeArchiveModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="archiveList"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeArchiveModal()">إغلاق</button>
+        <button class="btn btn-primary" onclick="saveToArchive()">
+          <span>💾 حفظ العريضة الحالية</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Engine -->
+  <script src="app.js"></script>
+</body>
+</html>

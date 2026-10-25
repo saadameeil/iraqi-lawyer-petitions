@@ -1,0 +1,687 @@
+/**
+ * نظام تحرير وطباعة العرائض القضائية - المحامي سعد فراس أميل
+ * المحرك البرمجي للتطبيق وتوليد المستندات والتحليل الذكي
+ */
+
+// State Object
+const state = {
+  courtRecipient: 'السيد قاضي محكمة تحقيق بغداد الجديدة المحترم',
+  complainantName: '',
+  complainantAddress: '',
+  defendantName: '',
+  defendantAddress: '',
+  subject: '',
+  salutation: 'تحية طيبة واحترام /',
+  bodyText: '',
+  closingSalutation: 'ولعدالتكم فائق التقدير والاحترام',
+  sigRole: 'المشتكي / وكيله',
+  sigName: 'المحامي سعد فراس أميل',
+  petitionDate: getTodayFormattedArabic(),
+  fontScale: 100,
+  activeTab: 'editor' // 'editor' | 'preview'
+};
+
+// Auto-fill today's date in formal Iraqi format
+function getTodayFormattedArabic() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  return `${day} / ${month} / ${year}`;
+}
+
+// Initialize on DOM Load
+document.addEventListener('DOMContentLoaded', () => {
+  loadDraftFromStorage();
+  bindInputEvents();
+  renderPreview();
+  setupTabEvents();
+  updateSinglePageFitIndicator();
+  updateMobileSheetZoom();
+});
+
+// Update Mobile Zoom so A4 sheet fits horizontally on small screens
+function updateMobileSheetZoom() {
+  const wrapper = document.querySelector('.a4-sheet-wrapper');
+  const sheet = document.getElementById('a4Sheet');
+  if (!wrapper || !sheet) return;
+
+  if (window.innerWidth < 850) {
+    const availableWidth = wrapper.clientWidth - 20;
+    const sheetWidth = 794; // approx 210mm at 96dpi
+    const zoom = Math.max(0.35, Math.min(1, availableWidth / sheetWidth));
+    sheet.style.transform = `scale(${zoom})`;
+    sheet.style.transformOrigin = 'top center';
+    const scaledHeight = 1123 * zoom;
+    wrapper.style.height = `${scaledHeight + 40}px`;
+    wrapper.style.overflowX = 'hidden';
+  } else {
+    sheet.style.transform = 'none';
+    wrapper.style.height = 'auto';
+    wrapper.style.overflowX = 'auto';
+  }
+}
+
+// Bind Input Elements to State
+function bindInputEvents() {
+  const inputs = [
+    { id: 'courtRecipient', key: 'courtRecipient' },
+    { id: 'complainantName', key: 'complainantName' },
+    { id: 'complainantAddress', key: 'complainantAddress' },
+    { id: 'defendantName', key: 'defendantName' },
+    { id: 'defendantAddress', key: 'defendantAddress' },
+    { id: 'subject', key: 'subject' },
+    { id: 'salutation', key: 'salutation' },
+    { id: 'bodyText', key: 'bodyText' },
+    { id: 'closingSalutation', key: 'closingSalutation' },
+    { id: 'sigRole', key: 'sigRole' },
+    { id: 'sigName', key: 'sigName' },
+    { id: 'petitionDate', key: 'petitionDate' }
+  ];
+
+  inputs.forEach(({ id, key }) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.value = state[key];
+      el.addEventListener('input', (e) => {
+        state[key] = e.target.value;
+        renderPreview();
+        saveDraftToStorage();
+        updateSinglePageFitIndicator();
+      });
+    }
+  });
+
+  // Scale slider
+  const slider = document.getElementById('scaleSlider');
+  if (slider) {
+    slider.addEventListener('input', (e) => {
+      setFontScale(parseInt(e.target.value, 10));
+    });
+  }
+}
+
+// Quick Chip helper for courts
+window.setCourt = function(courtName) {
+  state.courtRecipient = courtName;
+  const el = document.getElementById('courtRecipient');
+  if (el) el.value = courtName;
+  renderPreview();
+  saveDraftToStorage();
+};
+
+// Render live document in the A4 Paper Container
+function renderPreview() {
+  // Court Header
+  document.getElementById('docCourt').innerText = state.courtRecipient || 'السيد قاضي محكمة ... المحترم';
+
+  // Complainant Block
+  const cNameEl = document.getElementById('docComplainantName');
+  const cAddrEl = document.getElementById('docComplainantAddress');
+  cNameEl.innerText = state.complainantName ? state.complainantName : '................................................';
+  if (state.complainantAddress && state.complainantAddress.trim()) {
+    cAddrEl.innerText = 'الساكن: ' + state.complainantAddress.trim();
+    cAddrEl.style.display = 'block';
+  } else {
+    cAddrEl.style.display = 'none';
+  }
+
+  // Defendant Block
+  const dNameEl = document.getElementById('docDefendantName');
+  const dAddrEl = document.getElementById('docDefendantAddress');
+  dNameEl.innerText = state.defendantName ? state.defendantName : '................................................';
+  if (state.defendantAddress && state.defendantAddress.trim()) {
+    dAddrEl.innerText = 'الساكن: ' + state.defendantAddress.trim();
+    dAddrEl.style.display = 'block';
+  } else {
+    dAddrEl.style.display = 'none';
+  }
+
+  // Conditional Subject Field (الموضوع)
+  const subjRow = document.getElementById('docSubjectRow');
+  const subjText = document.getElementById('docSubjectText');
+  if (state.subject && state.subject.trim() !== '') {
+    subjText.innerText = state.subject.trim().startsWith('م/') || state.subject.trim().startsWith('م /') 
+      ? state.subject.trim() 
+      : 'م / ' + state.subject.trim();
+    subjRow.style.display = 'block';
+  } else {
+    subjRow.style.display = 'none';
+  }
+
+  // Salutation
+  document.getElementById('docSalutation').innerText = state.salutation || 'تحية طيبة واحترام /';
+
+  // Body
+  const bodyEl = document.getElementById('docBody');
+  if (state.bodyText && state.bodyText.trim()) {
+    bodyEl.innerText = state.bodyText;
+  } else {
+    bodyEl.innerText = 'أعرض لعدالتكم الموقرة بأنه...\n(يرجى كتابة وقائع الدعوى والطلبات في حقل النص أو استخدام خاصية التحليل والتعبئة الذكية).';
+  }
+
+  // Closing - positioned naturally right after body
+  document.getElementById('docClosing').innerText = state.closingSalutation || 'ولعدالتكم فائق التقدير والاحترام';
+
+  // Date
+  document.getElementById('docDate').innerText = 'التاريخ: ' + (state.petitionDate || getTodayFormattedArabic());
+
+  // Signature (Role on top, Name below it)
+  const roleEl = document.getElementById('docSigRole');
+  const nameEl = document.getElementById('docSigName');
+  if (roleEl) roleEl.innerText = state.sigRole || 'المشتكي / وكيله';
+  if (nameEl) nameEl.innerText = state.sigName || 'المحامي سعد فراس أميل';
+}
+
+// Adjust font scale dynamically
+function setFontScale(percent) {
+  state.fontScale = percent;
+  const sheet = document.getElementById('a4Sheet');
+  const lbl = document.getElementById('scaleLabel');
+  if (lbl) lbl.innerText = percent + '%';
+  const slider = document.getElementById('scaleSlider');
+  if (slider) slider.value = percent;
+
+  // Base font size is 14pt (approx 18.6px)
+  const basePt = 14 * (percent / 100);
+  const baseLineHeight = 1.55 * (percent / 100 < 0.9 ? 1.4 : 1.55);
+  sheet.style.setProperty('--paper-font-size', `${basePt.toFixed(1)}pt`);
+  sheet.style.setProperty('--paper-line-height', `${baseLineHeight.toFixed(2)}`);
+
+  updateSinglePageFitIndicator();
+}
+
+// Check if A4 content overflows single sheet
+function updateSinglePageFitIndicator() {
+  const sheet = document.getElementById('a4Sheet');
+  const badge = document.getElementById('fitBadge');
+  if (!sheet || !badge) return;
+
+  const isOverflow = sheet.scrollHeight > (sheet.clientHeight + 4);
+  if (isOverflow) {
+    badge.className = 'status-badge status-warn';
+    badge.innerHTML = '⚠️ قد يتجاوز صفحة واحدة - اضغط هنا للملاءمة';
+    badge.onclick = autoFitSinglePage;
+    badge.style.cursor = 'pointer';
+  } else {
+    badge.className = 'status-badge status-ok';
+    badge.innerHTML = '✓ صفحة A4 واحدة متناسقة (100%)';
+    badge.onclick = null;
+    badge.style.cursor = 'default';
+  }
+}
+
+// Auto-Fit Algorithm to guarantee single-page fit
+window.autoFitSinglePage = function() {
+  const sheet = document.getElementById('a4Sheet');
+  if (!sheet) return;
+
+  let currentScale = state.fontScale;
+  // Step down until it fits or reaches 75%
+  while (sheet.scrollHeight > sheet.clientHeight && currentScale > 75) {
+    currentScale -= 3;
+    setFontScale(currentScale);
+  }
+
+  showToast('تمت ملاءمة أبعاد العريضة لتستقر في ورقة واحدة تماماً ✨');
+  updateSinglePageFitIndicator();
+};
+
+// Reset Form
+window.resetForm = function() {
+  if (!confirm('هل تريد مسح الحقول وبدء عريضة جديدة؟')) return;
+  state.courtRecipient = 'السيد قاضي محكمة تحقيق بغداد الجديدة المحترم';
+  state.complainantName = '';
+  state.complainantAddress = '';
+  state.defendantName = '';
+  state.defendantAddress = '';
+  state.subject = '';
+  state.bodyText = '';
+  state.petitionDate = getTodayFormattedArabic();
+  state.sigRole = 'المشتكي / وكيله';
+  state.sigName = 'المحامي سعد فراس أميل';
+  state.fontScale = 100;
+
+  // Repopulate form
+  const inputs = ['courtRecipient', 'complainantName', 'complainantAddress', 
+                  'defendantName', 'defendantAddress', 'subject', 'bodyText', 
+                  'petitionDate', 'sigRole', 'sigName'];
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = state[id];
+  });
+
+  setFontScale(100);
+  renderPreview();
+  saveDraftToStorage();
+  showToast('تم تجهيز استمارة جديدة فارغة');
+};
+
+// ==========================================================================
+// Smart AI Text Parser (محلل الذكاء الاصطناعي الأصولي)
+// ==========================================================================
+window.openAiModal = function() {
+  document.getElementById('aiModal').classList.add('active');
+  document.getElementById('aiRawInput').focus();
+};
+
+window.closeAiModal = function() {
+  document.getElementById('aiModal').classList.remove('active');
+};
+
+window.processAiDraft = function() {
+  const raw = document.getElementById('aiRawInput').value.trim();
+  if (!raw) {
+    alert('يرجى لصق نص العريضة أولاً');
+    return;
+  }
+
+  const parsed = parseLegalText(raw);
+  
+  // Apply parsed results to state
+  if (parsed.court) state.courtRecipient = parsed.court;
+  if (parsed.complainant) state.complainantName = parsed.complainant;
+  if (parsed.complainantAddress) state.complainantAddress = parsed.complainantAddress;
+  if (parsed.defendant) state.defendantName = parsed.defendant;
+  if (parsed.defendantAddress) state.defendantAddress = parsed.defendantAddress;
+  if (parsed.subject) state.subject = parsed.subject;
+  if (parsed.body) state.bodyText = parsed.body;
+  if (parsed.sigRole) state.sigRole = parsed.sigRole;
+  if (parsed.sigName) state.sigName = parsed.sigName;
+  if (parsed.date) state.petitionDate = parsed.date;
+
+  // Update inputs
+  ['courtRecipient', 'complainantName', 'complainantAddress', 
+   'defendantName', 'defendantAddress', 'subject', 'bodyText', 
+   'petitionDate', 'sigRole', 'sigName'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = state[id];
+  });
+
+  renderPreview();
+  saveDraftToStorage();
+  closeAiModal();
+  autoFitSinglePage();
+  showToast('تم استخراج البيانات وتعبئة كافة الحقول بنجاح! 🚀');
+
+  // Switch to preview if user wants to see it on mobile
+  if (window.innerWidth < 1024) {
+    switchTab('preview');
+  }
+};
+
+function stripDiacritics(str) {
+  return str.replace(/[\u064B-\u065F\u0670\u0640]/g, '');
+}
+
+/**
+ * Intelligent regex and heuristic extractor for Iraqi court drafts
+ */
+function parseLegalText(text) {
+  const result = {
+    court: null,
+    complainant: null,
+    complainantAddress: null,
+    defendant: null,
+    defendantAddress: null,
+    subject: null,
+    body: null,
+    signature: null,
+    date: null
+  };
+
+  const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  const bodyCandidates = [];
+
+  const addressRegex = /(الساكن|الساكنة|عنوانه|عنوانها|محل سكنه|محل سكنها|محل عمله|مقرها|مقر عمله|محل إقامته|العنوان|الهاتف|رقم الهاتف)/;
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const originalLine = rawLines[i];
+    const cleanLine = stripDiacritics(originalLine);
+
+    // 0. Skip AI preambles
+    if (/^(تفضل|إليك|اليك|نموذج|صياغة|هذه عريضة|أدناه نص|فيما يلي)/i.test(cleanLine)) {
+      continue;
+    }
+
+    // Skip Basmala
+    if (/^بسم\s*الله/i.test(cleanLine)) {
+      continue;
+    }
+
+    // 1. Court Recipient Header
+    if (!result.court && /(السيد قاضي|السيد رئيس|إلى\s*[\/:]?\s*السيد|محكمة تحقيق|محكمة بداءة|محكمة الأحوال|محكمة جنح|محكمة الجنايات|محكمة استئناف)/i.test(cleanLine)) {
+      result.court = originalLine.replace(/^(إلى\s*[\/:]?\s*|الى\s*[\/:]?\s*)/, '').trim();
+      continue;
+    }
+
+    // 2. Complainant Name
+    if (!result.complainant && /^(المشتكي|المشتكية|المدعي|المدعية|طالب التنفيذ|المستأنف)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
+      const match = originalLine.match(/^(المشتكي|المشتكية|المدعي|المدعية|طالب التنفيذ|المستأنف)[\s:\/ـ-]+(.+)$/i);
+      result.complainant = match[2].trim();
+      
+      // Inline address after / or -
+      if (addressRegex.test(result.complainant)) {
+        const parts = result.complainant.split(/[\/ـ-]\s*(?=(?:الساكن|الساكنة|عنوانه|عنوانها|محل|مقر|العنوان|الهاتف))/i);
+        if (parts.length > 1) {
+          result.complainant = parts[0].trim();
+          result.complainantAddress = parts.slice(1).join(' - ').replace(/^[\s:\/ـ-]+/, '').replace(addressRegex, '').replace(/^[\s:\/ـ-]+/, '').trim();
+        }
+      }
+      continue;
+    }
+
+    // Complainant Address if on immediate next line
+    if (result.complainant && !result.complainantAddress && !result.defendant && addressRegex.test(cleanLine) && !/^(المشكو|المدعى)/.test(cleanLine)) {
+      result.complainantAddress = originalLine.replace(/^.*?(الساكن|الساكنة|عنوانه|عنوانها|محل سكنه|محل سكنها|محل عمله|مقرها|العنوان|الهاتف)[\s:\/ـ-]*/i, '').trim();
+      continue;
+    }
+
+    // 3. Defendant Name
+    if (!result.defendant && /^(المشكو منه|المشكو منها|المدعى عليه|المدعى عليها|المنفذ ضده|المستأنف عليه)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
+      const match = originalLine.match(/^(المشكو منه|المشكو منها|المدعى عليه|المدعى عليها|المنفذ ضده|المستأنف عليه)[\s:\/ـ-]+(.+)$/i);
+      result.defendant = match[2].trim();
+
+      // Inline address after / or -
+      if (addressRegex.test(result.defendant)) {
+        const parts = result.defendant.split(/[\/ـ-]\s*(?=(?:الساكن|الساكنة|عنوانه|عنوانها|محل|مقر|العنوان|الهاتف))/i);
+        if (parts.length > 1) {
+          result.defendant = parts[0].trim();
+          result.defendantAddress = parts.slice(1).join(' - ').replace(/^[\s:\/ـ-]+/, '').replace(addressRegex, '').replace(/^[\s:\/ـ-]+/, '').trim();
+        }
+      }
+      continue;
+    }
+
+    // Defendant Address if on immediate next line
+    if (result.defendant && !result.defendantAddress && addressRegex.test(cleanLine) && !/^(الموضوع|م\s*[\/:]|تحية|أعرض)/.test(cleanLine)) {
+      result.defendantAddress = originalLine.replace(/^.*?(الساكن|الساكنة|عنوانه|عنوانها|محل سكنه|محل سكنها|محل عمله|مقرها|العنوان|الهاتف)[\s:\/ـ-]*/i, '').trim();
+      continue;
+    }
+
+    // 4. Subject line
+    if (!result.subject && /^(الموضوع|م\s*[\/:]|م\/|جهة الشكوى|جهة الدعوى)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
+      result.subject = originalLine.replace(/^(الموضوع|م\s*[\/:]|م\/|جهة الشكوى|جهة الدعوى)[\s:\/ـ-]+/i, '').trim();
+      continue;
+    }
+
+    // 5. Strict Date (only if line explicitly designates a formal date)
+    if (!result.date && /^التاريخ[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
+      result.date = originalLine.replace(/^التاريخ[\s:\/ـ-]+/i, '').trim();
+      continue;
+    }
+    // Or if in the very last 3 lines and has date pattern
+    if (!result.date && i >= rawLines.length - 3 && /(التاريخ|تحريراً في)[\s:\/ـ-]+(\d{1,4}.+)$/i.test(cleanLine)) {
+      const dateM = originalLine.match(/(التاريخ|تحريراً في)[\s:\/ـ-]+(\d{1,4}.+)$/i);
+      result.date = dateM[2].trim();
+      continue;
+    }
+
+    // 6. Signature block (in the last 4 lines)
+    if (i >= rawLines.length - 4 && /(المشتكي|المشتكية|المدعي|المدعية|وكيله|وكيل|المحامي|مقدم الطلب|التوقيع)/i.test(cleanLine)) {
+      if (/المحامي/i.test(originalLine)) {
+        const parts = originalLine.split(/(?=المحامي)/i);
+        result.sigRole = parts[0].replace(/[\/ـ:-]+$/, '').trim() || 'المشتكي / وكيله';
+        result.sigName = parts.slice(1).join('').trim() || 'المحامي سعد فراس أميل';
+      } else {
+        result.sigRole = originalLine;
+        result.sigName = state.sigName || 'المحامي سعد فراس أميل';
+      }
+      continue;
+    }
+
+    // 7. Salutations / Closings removal
+    if (/^(تحية طيبة|تحية واحترام|السلام عليكم ورحمة|سيدي القاضي المحترم)/i.test(cleanLine)) {
+      continue;
+    }
+    if (/^(ولعدالتكم فائق|مع فائق التقدير|وتقبلوا فائق|ولكم وافر الاحترام|مع وافر الاحترام)/i.test(cleanLine)) {
+      continue;
+    }
+
+    // Everything else is body!
+    bodyCandidates.push(originalLine);
+  }
+
+  result.body = bodyCandidates.join('\n\n');
+  return result;
+}
+
+// ==========================================================================
+// Archive & LocalStorage Management
+// ==========================================================================
+const STORAGE_DRAFT_KEY = 'iraqi_petition_draft_v1';
+const STORAGE_ARCHIVE_KEY = 'iraqi_petitions_archive_v1';
+
+function saveDraftToStorage() {
+  localStorage.setItem(STORAGE_DRAFT_KEY, JSON.stringify(state));
+}
+
+function loadDraftFromStorage() {
+  const saved = localStorage.getItem(STORAGE_DRAFT_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.signatureText && !parsed.sigRole) {
+        if (parsed.signatureText.includes('المحامي')) {
+          const parts = parsed.signatureText.split(/(?=المحامي)/);
+          parsed.sigRole = parts[0].replace(/[\/ـ:-]+$/, '').trim() || 'المشتكي / وكيله';
+          parsed.sigName = parts.slice(1).join('').trim() || 'المحامي سعد فراس أميل';
+        } else {
+          parsed.sigRole = 'المشتكي / وكيله';
+          parsed.sigName = parsed.signatureText;
+        }
+      }
+      Object.assign(state, parsed);
+    } catch (e) {
+      console.warn('Error loading draft', e);
+    }
+  }
+}
+
+window.saveToArchive = function() {
+  if (!state.complainantName && !state.bodyText) {
+    alert('لا توجد بيانات كافية لحفظها في الأرشيف (اكتب اسم المشتكي أو العريضة على الأقل).');
+    return;
+  }
+
+  const archive = getArchiveList();
+  const title = (state.subject || (state.complainantName ? `شكوى / ${state.complainantName}` : 'عريضة دعوى')).trim();
+  
+  const newItem = {
+    id: 'case_' + Date.now(),
+    title: title,
+    court: state.courtRecipient,
+    complainant: state.complainantName,
+    defendant: state.defendantName,
+    date: state.petitionDate,
+    savedAt: new Date().toLocaleString('ar-IQ'),
+    data: { ...state }
+  };
+
+  archive.unshift(newItem);
+  localStorage.setItem(STORAGE_ARCHIVE_KEY, JSON.stringify(archive));
+  showToast('تم حفظ القضية في الأرشيف بنجاح 📁');
+  renderArchiveList();
+};
+
+function getArchiveList() {
+  const raw = localStorage.getItem(STORAGE_ARCHIVE_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
+}
+
+window.openArchiveModal = function() {
+  renderArchiveList();
+  document.getElementById('archiveModal').classList.add('active');
+};
+
+window.closeArchiveModal = function() {
+  document.getElementById('archiveModal').classList.remove('active');
+};
+
+function renderArchiveList() {
+  const container = document.getElementById('archiveList');
+  const items = getArchiveList();
+
+  if (items.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;">لا توجد قضايا محفوظة في الأرشيف حتى الآن.</div>';
+    return;
+  }
+
+  container.innerHTML = items.map(item => `
+    <div class="archive-item">
+      <div class="archive-info">
+        <h4>${item.title}</h4>
+        <p>🏛️ ${item.court} | 📅 ${item.savedAt}</p>
+        <p style="margin-top:2px; font-size:11.5px; color:#cbd5e1;">
+          <b>المشتكي:</b> ${item.complainant || 'غير محدد'} &bull; 
+          <b>المشكو منه:</b> ${item.defendant || 'غير محدد'}
+        </p>
+      </div>
+      <div class="archive-actions">
+        <button class="btn btn-secondary btn-sm" onclick="loadCaseFromArchive('${item.id}')" title="فتح للتعديل">
+          تعديل ✏️
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCaseFromArchive('${item.id}')" title="حذف">
+          🗑️
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.loadCaseFromArchive = function(id) {
+  const items = getArchiveList();
+  const found = items.find(x => x.id === id);
+  if (!found) return;
+
+  Object.assign(state, found.data);
+
+  // Migrate old archive items if needed
+  if (found.data.signatureText && !found.data.sigRole) {
+    if (found.data.signatureText.includes('المحامي')) {
+      const parts = found.data.signatureText.split(/(?=المحامي)/);
+      state.sigRole = parts[0].replace(/[\/ـ:-]+$/, '').trim() || 'المشتكي / وكيله';
+      state.sigName = parts.slice(1).join('').trim() || 'المحامي سعد فراس أميل';
+    } else {
+      state.sigRole = 'المشتكي / وكيله';
+      state.sigName = found.data.signatureText;
+    }
+  }
+
+  // Update inputs
+  ['courtRecipient', 'complainantName', 'complainantAddress', 
+   'defendantName', 'defendantAddress', 'subject', 'bodyText', 
+   'petitionDate', 'sigRole', 'sigName'].forEach(k => {
+    const el = document.getElementById(k);
+    if (el) el.value = state[k] || '';
+  });
+
+  if (state.fontScale) setFontScale(state.fontScale);
+  renderPreview();
+  saveDraftToStorage();
+  closeArchiveModal();
+  showToast(`تم فتح قضية: ${found.title}`);
+
+  if (window.innerWidth < 1024) {
+    switchTab('editor');
+  }
+};
+
+window.deleteCaseFromArchive = function(id) {
+  if (!confirm('هل أنت متأكد من حذف هذه العريضة من الأرشيف؟')) return;
+  let items = getArchiveList();
+  items = items.filter(x => x.id !== id);
+  localStorage.setItem(STORAGE_ARCHIVE_KEY, JSON.stringify(items));
+  renderArchiveList();
+  showToast('تم حذف القضية من الأرشيف');
+};
+
+// ==========================================================================
+// Tabs & Navigation
+// ==========================================================================
+function setupTabEvents() {
+  const tabEditor = document.getElementById('tabEditor');
+  const tabPreview = document.getElementById('tabPreview');
+
+  if (tabEditor) tabEditor.addEventListener('click', () => switchTab('editor'));
+  if (tabPreview) tabPreview.addEventListener('click', () => switchTab('preview'));
+}
+
+window.switchTab = function(tabName) {
+  state.activeTab = tabName;
+  const editorPane = document.getElementById('editorPane');
+  const previewPane = document.getElementById('previewPane');
+  const tabEditor = document.getElementById('tabEditor');
+  const tabPreview = document.getElementById('tabPreview');
+  const mNavEditor = document.getElementById('mNavEditor');
+  const mNavPreview = document.getElementById('mNavPreview');
+
+  if (window.innerWidth < 1024) {
+    if (tabName === 'editor') {
+      editorPane.style.display = 'block';
+      previewPane.style.display = 'none';
+      if (tabEditor) tabEditor.classList.add('active');
+      if (tabPreview) tabPreview.classList.remove('active');
+      if (mNavEditor) mNavEditor.classList.add('active');
+      if (mNavPreview) mNavPreview.classList.remove('active');
+    } else {
+      editorPane.style.display = 'none';
+      previewPane.style.display = 'block';
+      if (tabEditor) tabEditor.classList.remove('active');
+      if (tabPreview) tabPreview.classList.add('active');
+      if (mNavEditor) mNavEditor.classList.remove('active');
+      if (mNavPreview) mNavPreview.classList.add('active');
+      updateSinglePageFitIndicator();
+      setTimeout(updateMobileSheetZoom, 50);
+    }
+  } else {
+    // Both visible on desktop
+    editorPane.style.display = 'block';
+    previewPane.style.display = 'block';
+    updateMobileSheetZoom();
+  }
+};
+
+// Handle window resizing
+window.addEventListener('resize', () => {
+  if (window.innerWidth >= 1024) {
+    document.getElementById('editorPane').style.display = 'block';
+    document.getElementById('previewPane').style.display = 'block';
+  } else {
+    switchTab(state.activeTab);
+  }
+  updateMobileSheetZoom();
+});
+
+// ==========================================================================
+// Printing & Native iOS Sheet
+// ==========================================================================
+window.printPetition = function() {
+  // Ensure preview is up to date
+  renderPreview();
+  updateSinglePageFitIndicator();
+
+  // On iOS Safari, window.print() opens the system Print Sheet
+  window.print();
+};
+
+// Toast notification helper
+function showToast(msg) {
+  let toast = document.getElementById('appToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'appToast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.innerText = msg;
+  toast.style.display = 'flex';
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 2800);
+}
