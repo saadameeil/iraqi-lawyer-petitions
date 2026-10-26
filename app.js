@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTabEvents();
   updateSinglePageFitIndicator();
   updateMobileSheetZoom();
+  syncServerArchive();
 });
 
 // Update Mobile Zoom so A4 sheet fits horizontally on small screens
@@ -514,9 +515,38 @@ function getArchiveList() {
   }
 }
 
-window.openArchiveModal = function() {
-  renderArchiveList();
+// Sync with server-side archive.json (pushed by AI or backend)
+window.syncServerArchive = async function(manual = false) {
+  try {
+    const res = await fetch('archive.json?t=' + Date.now(), { cache: 'no-store' });
+    if (res.ok) {
+      const serverItems = await res.json();
+      if (Array.isArray(serverItems) && serverItems.length > 0) {
+        let local = getArchiveList();
+        serverItems.forEach(sItem => {
+          const idx = local.findIndex(x => x.id === sItem.id);
+          if (idx === -1) {
+            local.unshift(sItem);
+          } else {
+            local[idx] = sItem;
+          }
+        });
+        localStorage.setItem(STORAGE_ARCHIVE_KEY, JSON.stringify(local));
+        renderArchiveList();
+        if (manual) showToast('تمت مزامنة الأرشيف من الخادم بنجاح 📁⚡');
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('Sync error:', e);
+    if (manual) showToast('تعذر الاتصال بالأرشيف');
+  }
+};
+
+window.openArchiveModal = async function() {
   document.getElementById('archiveModal').classList.add('active');
+  renderArchiveList();
+  await window.syncServerArchive(false);
 };
 
 window.closeArchiveModal = function() {

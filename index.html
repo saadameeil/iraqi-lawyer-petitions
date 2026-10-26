@@ -15,7 +15,10 @@
   <meta name="theme-color" content="#0b1120">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261026_1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 </head>
 <body>
 
@@ -334,6 +337,9 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2><span>📁</span> أرشيف القضايا والمسودات المحفوظة</h2>
+        <button class="btn btn-secondary btn-sm" onclick="syncServerArchive(true)" style="margin-right:auto; margin-left:10px; font-size:12px; padding:4px 10px;">
+          🔄 مزامنة فورية
+        </button>
         <button class="modal-close" onclick="closeArchiveModal()">&times;</button>
       </div>
       <div class="modal-body">
@@ -349,6 +355,6 @@
   </div>
 
   <!-- JavaScript Engine -->
-  <script src="app.js"></script>
+  <script src="app.js?v=20261026_sync2"></script>
 </body>
 </html>
