@@ -513,22 +513,24 @@ body {
   text-justify: inter-word;
   white-space: pre-wrap;
   word-break: break-word;
-  margin-bottom: var(--paper-spacing, 8pt);
+  margin-bottom: var(--paper-spacing, 6pt);
 }
 
-/* Bottom Group: Closing + Date + Signature */
+/* Closing Salutation: Directly follows body text, centered in the page */
+.doc-closing-salutation {
+  text-align: center;
+  font-size: var(--paper-title-size, 13pt);
+  font-weight: 700;
+  margin: var(--paper-spacing, 8pt) auto;
+  width: 100%;
+}
+
+/* Bottom Group: Date + Signature (Anchored at the bottom) */
 .doc-bottom-block {
   margin-top: auto; /* Always anchors smoothly at the bottom of the sheet */
   display: flex;
   flex-direction: column;
   padding-top: var(--paper-spacing, 6pt);
-}
-
-.doc-closing-salutation {
-  text-align: center;
-  font-size: var(--paper-title-size, 13pt);
-  font-weight: 700;
-  margin: var(--paper-spacing, 6pt) 0 var(--paper-spacing, 8pt) 0;
 }
 
 .doc-footer-row {
