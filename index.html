@@ -39,7 +39,10 @@
         <button class="btn btn-secondary btn-sm" onclick="openArchiveModal()" title="سجل القضايا المحفوظة">
           <span>📁 الأرشيف</span>
         </button>
-        <button class="btn btn-primary btn-sm" onclick="printPetition()" title="طباعة أو تصدير PDF">
+        <button class="btn btn-success btn-sm" onclick="exportDirectPDF()" title="تحميل ملف PDF أو مشاركته فوراً">
+          <span>📥 تصدير PDF</span>
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="printPetition()" title="طباعة أو نافذة النظام">
           <span>🖨️ طباعة A4</span>
         </button>
       </div>
@@ -189,12 +192,15 @@
         </div>
 
         <!-- Action Buttons -->
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button class="btn btn-primary" style="flex: 2; padding: 12px;" onclick="printPetition()">
-            <span>🖨️ معاينة وطباعة الورقة (A4)</span>
+        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+          <button class="btn btn-success" style="flex: 2; min-width: 160px; padding: 12px;" onclick="exportDirectPDF()">
+            <span>📥 تصدير ومشاركة PDF مباشر</span>
           </button>
-          <button class="btn btn-secondary" style="flex: 1; padding: 12px;" onclick="saveToArchive()">
-            <span>💾 حفظ بالأرشيف</span>
+          <button class="btn btn-primary" style="flex: 1.5; min-width: 130px; padding: 12px;" onclick="printPetition()">
+            <span>🖨️ طباعة A4</span>
+          </button>
+          <button class="btn btn-secondary" style="flex: 1; min-width: 110px; padding: 12px;" onclick="saveToArchive()">
+            <span>💾 الأرشيف</span>
           </button>
         </div>
 
@@ -217,8 +223,11 @@
                 <span>⚡ ملاءمة تلقائية</span>
               </button>
             </div>
+            <button class="btn btn-success btn-sm" onclick="exportDirectPDF()" title="تحميل ملف PDF أو مشاركته فوراً عبر واتساب والمستندات">
+              <span>📥 تصدير PDF مباشر</span>
+            </button>
             <button class="btn btn-primary btn-sm" onclick="printPetition()">
-              <span>🖨️ طباعة / PDF</span>
+              <span>🖨️ طباعة A4</span>
             </button>
           </div>
 
@@ -304,9 +313,9 @@
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
       <span>الأرشيف</span>
     </button>
-    <button class="mobile-nav-btn btn-print-nav" onclick="printPetition()">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-      <span>طباعة A4</span>
+    <button class="mobile-nav-btn btn-print-nav" onclick="exportDirectPDF()" title="تصدير ومشاركة PDF">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+      <span>تصدير PDF</span>
     </button>
   </nav>
 
@@ -354,7 +363,8 @@
     </div>
   </div>
 
-  <!-- JavaScript Engine -->
-  <script src="app.js?v=20261026_sync2"></script>
+  <!-- JavaScript Engine & External Libraries -->
+  <script src="html2pdf.bundle.min.js"></script>
+  <script src="app.js?v=20261026_pdf1"></script>
 </body>
 </html>

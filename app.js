@@ -689,7 +689,7 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================================================
-// Printing & Native iOS Sheet
+// Printing & Native iOS Sheet / Direct PDF Export
 // ==========================================================================
 window.printPetition = function() {
   // Ensure preview is up to date
@@ -698,6 +698,146 @@ window.printPetition = function() {
 
   // On iOS Safari, window.print() opens the system Print Sheet
   window.print();
+};
+
+/**
+ * Direct High-Resolution PDF Export & Native Share
+ * - Seamlessly generates a 1-page A4 PDF without printer dialogs.
+ * - Supports iOS Safari Native Share Sheet (WhatsApp, AirDrop, Save to Files).
+ * - Direct download on PC (Chrome, Edge, Firefox).
+ */
+window.exportDirectPDF = async function() {
+  if (typeof html2pdf === 'undefined') {
+    alert('محرك تصدير الـ PDF قيد التحميل، يرجى المحاولة بعد قليل أو إعادة تحديث الصفحة.');
+    return;
+  }
+
+  const sheet = document.getElementById('a4Sheet');
+  const previewPane = document.getElementById('previewPane');
+  if (!sheet || !previewPane) return;
+
+  // 1. Ensure live preview is synced with all fields
+  renderPreview();
+
+  // 2. Build human-readable legal filename
+  let filename = 'عريضة_دعوى_قضائية';
+  const cName = (state.complainantName || '').trim();
+  const dName = (state.defendantName || '').trim();
+  if (cName && dName) {
+    filename = `عريضة_${cName}_ضد_${dName}`;
+  } else if (cName) {
+    filename = `عريضة_${cName}`;
+  } else if (state.subject && state.subject.trim()) {
+    filename = state.subject.trim().replace(/^م\s*\/\s*/, '');
+  }
+  filename = filename.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_') + '.pdf';
+
+  showToast('⏳ جاري تجهيز وتصدير ملف الـ PDF عالي الدقة...');
+
+  // 3. Preserve responsive styles
+  const isPreviewHidden = (window.getComputedStyle(previewPane).display === 'none');
+  const origPreviewDisplay = previewPane.style.display;
+  const origPreviewPos = previewPane.style.position;
+  const origPreviewLeft = previewPane.style.left;
+  const origPreviewTop = previewPane.style.top;
+  const origPreviewZ = previewPane.style.zIndex;
+  const origPreviewVis = previewPane.style.visibility;
+
+  const origSheetTransform = sheet.style.transform;
+  const origSheetBoxShadow = sheet.style.boxShadow;
+  const origSheetMargin = sheet.style.margin;
+
+  try {
+    // If user is currently editing on mobile and clicked export from the bottom nav or header,
+    // previewPane is display: none. Temporarily position off-screen so html2canvas can measure & render it.
+    if (isPreviewHidden) {
+      previewPane.style.visibility = 'visible';
+      previewPane.style.display = 'block';
+      previewPane.style.position = 'fixed';
+      previewPane.style.left = '-9999px';
+      previewPane.style.top = '0';
+      previewPane.style.zIndex = '-9999';
+    }
+
+    // Temporarily unzoom mobile scale so it renders at 100% pure A4 physical dimensions (210mm x 297mm)
+    sheet.style.transform = 'none';
+    sheet.style.boxShadow = 'none';
+    sheet.style.margin = '0 auto';
+
+    const opt = {
+      margin: 0,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        scrollY: 0,
+        scrollX: 0
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      }
+    };
+
+    // Generate PDF blob
+    const pdfBlob = await html2pdf().set(opt).from(sheet).outputPdf('blob');
+    const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+    // iOS Safari / Web Share API support check
+    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: filename.replace('.pdf', ''),
+          text: 'عريضة دعوى قضائية أصولية - مكتب المحامي سعد فراس أميل'
+        });
+        showToast('تمت مشاركة العريضة بنجاح 📲✨');
+        return;
+      } catch (shareErr) {
+        if (shareErr.name === 'AbortError') {
+          // User closed share sheet without selecting app
+          return;
+        }
+        console.warn('Native share sheet cancelled or unavailable, falling back to download:', shareErr);
+      }
+    }
+
+    // Fallback: Direct download via Blob URL (PC & Android/browsers without file share)
+    const downloadUrl = URL.createObjectURL(pdfBlob);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.href = downloadUrl;
+    downloadAnchor.download = filename;
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    document.body.removeChild(downloadAnchor);
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
+
+    showToast('تم تحميل وتصدير ملف الـ PDF بنجاح 📥📄');
+
+  } catch (err) {
+    console.error('Export PDF error:', err);
+    alert('حدث خطأ أثناء تصدير الـ PDF: ' + (err.message || err));
+  } finally {
+    // Restore original sheet styling
+    sheet.style.transform = origSheetTransform;
+    sheet.style.boxShadow = origSheetBoxShadow;
+    sheet.style.margin = origSheetMargin;
+
+    // Restore preview pane state
+    if (isPreviewHidden) {
+      previewPane.style.display = origPreviewDisplay;
+      previewPane.style.position = origPreviewPos;
+      previewPane.style.left = origPreviewLeft;
+      previewPane.style.top = origPreviewTop;
+      previewPane.style.zIndex = origPreviewZ;
+      previewPane.style.visibility = origPreviewVis;
+    }
+
+    updateMobileSheetZoom();
+  }
 };
 
 // Toast notification helper

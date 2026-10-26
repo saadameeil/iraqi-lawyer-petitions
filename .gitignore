@@ -1,0 +1,10 @@
+*.log
+run_platform.vbs
+stop_platform.vbs
+auto_start_service.ps1
+auto_start_service.py
+stop_service.py
+create_shortcuts.py
+__pycache__/
+.DS_Store
+Thumbs.db

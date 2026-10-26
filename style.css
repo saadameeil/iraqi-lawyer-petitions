@@ -153,6 +153,20 @@ body {
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 
+.btn-success {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+}
+
+.btn-success:active {
+  transform: scale(0.97);
+}
+
 .btn-sm {
   padding: 6px 10px;
   font-size: 12px;
