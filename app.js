@@ -798,9 +798,11 @@ window.exportDirectPDF = async function() {
     sheet.style.boxSizing = 'border-box';
     sheet.style.transform = 'none';
     sheet.style.boxShadow = 'none';
-    sheet.style.margin = '0 auto';
+    sheet.style.margin = '0';
+    sheet.style.direction = 'rtl';
 
     const opt = {
+      singlePage: true,
       margin: 0,
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
@@ -811,7 +813,7 @@ window.exportDirectPDF = async function() {
         scrollY: 0,
         scrollX: 0,
         windowWidth: 794,
-        windowHeight: 1123,
+        windowHeight: 1120,
         width: 794,
         height: 1120
       },
