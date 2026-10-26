@@ -117,26 +117,50 @@ function renderPreview() {
   // Court Header
   document.getElementById('docCourt').innerText = state.courtRecipient || 'السيد قاضي محكمة ... المحترم';
 
-  // Complainant Block
+  // Parties Box Logic: Completely hide rows and container if names are empty
+  const partiesBox = document.getElementById('docPartiesBox');
+  const cRow = document.getElementById('docComplainantRow');
+  const dRow = document.getElementById('docDefendantRow');
   const cNameEl = document.getElementById('docComplainantName');
   const cAddrEl = document.getElementById('docComplainantAddress');
-  cNameEl.innerText = state.complainantName ? state.complainantName : '................................................';
-  if (state.complainantAddress && state.complainantAddress.trim()) {
-    cAddrEl.innerText = 'الساكن: ' + state.complainantAddress.trim();
-    cAddrEl.style.display = 'block';
-  } else {
-    cAddrEl.style.display = 'none';
-  }
-
-  // Defendant Block
   const dNameEl = document.getElementById('docDefendantName');
   const dAddrEl = document.getElementById('docDefendantAddress');
-  dNameEl.innerText = state.defendantName ? state.defendantName : '................................................';
-  if (state.defendantAddress && state.defendantAddress.trim()) {
-    dAddrEl.innerText = 'الساكن: ' + state.defendantAddress.trim();
-    dAddrEl.style.display = 'block';
+
+  const hasComplainant = !!(state.complainantName && state.complainantName.trim());
+  const hasDefendant = !!(state.defendantName && state.defendantName.trim());
+
+  if (hasComplainant) {
+    if (cNameEl) cNameEl.innerText = state.complainantName.trim();
+    if (cAddrEl) {
+      if (state.complainantAddress && state.complainantAddress.trim()) {
+        cAddrEl.innerText = 'الساكن: ' + state.complainantAddress.trim();
+        cAddrEl.style.display = 'block';
+      } else {
+        cAddrEl.style.display = 'none';
+      }
+    }
+    if (cRow) cRow.style.display = 'block';
   } else {
-    dAddrEl.style.display = 'none';
+    if (cRow) cRow.style.display = 'none';
+  }
+
+  if (hasDefendant) {
+    if (dNameEl) dNameEl.innerText = state.defendantName.trim();
+    if (dAddrEl) {
+      if (state.defendantAddress && state.defendantAddress.trim()) {
+        dAddrEl.innerText = 'الساكن: ' + state.defendantAddress.trim();
+        dAddrEl.style.display = 'block';
+      } else {
+        dAddrEl.style.display = 'none';
+      }
+    }
+    if (dRow) dRow.style.display = 'block';
+  } else {
+    if (dRow) dRow.style.display = 'none';
+  }
+
+  if (partiesBox) {
+    partiesBox.style.display = (hasComplainant || hasDefendant) ? 'block' : 'none';
   }
 
   // Conditional Subject Field (الموضوع)
