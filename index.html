@@ -15,7 +15,7 @@
   <meta name="theme-color" content="#0b1120">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=20261026_1">
+  <link rel="stylesheet" href="style.css?v=20261026_fit2">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -235,33 +235,36 @@
           <div class="a4-sheet-wrapper">
             <div class="a4-sheet" id="a4Sheet">
               
-              <!-- Court Title -->
-              <div class="doc-court-title" id="docCourt">
-                السيد قاضي محكمة تحقيق بغداد الجديدة المحترم
-              </div>
-
-              <!-- Parties Box -->
-              <div class="doc-parties-box">
-                <div class="doc-party-row">
-                  <span class="party-role">المشتكي:</span>
-                  <span class="party-name" id="docComplainantName">................................................</span>
-                  <span class="party-address" id="docComplainantAddress" style="display: none;"></span>
+              <!-- Header Block (Court + Parties + Subject + Salutation) -->
+              <div class="doc-header-block">
+                <!-- Court Title -->
+                <div class="doc-court-title" id="docCourt">
+                  السيد قاضي محكمة تحقيق بغداد الجديدة المحترم
                 </div>
-                <div class="doc-party-row">
-                  <span class="party-role">المشكو منه:</span>
-                  <span class="party-name" id="docDefendantName">................................................</span>
-                  <span class="party-address" id="docDefendantAddress" style="display: none;"></span>
+
+                <!-- Parties Box -->
+                <div class="doc-parties-box">
+                  <div class="doc-party-row">
+                    <span class="party-role">المشتكي:</span>
+                    <span class="party-name" id="docComplainantName">................................................</span>
+                    <span class="party-address" id="docComplainantAddress" style="display: none;"></span>
+                  </div>
+                  <div class="doc-party-row">
+                    <span class="party-role">المشكو منه:</span>
+                    <span class="party-name" id="docDefendantName">................................................</span>
+                    <span class="party-address" id="docDefendantAddress" style="display: none;"></span>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Conditional Subject -->
-              <div class="doc-subject-row" id="docSubjectRow" style="display: none;">
-                <span id="docSubjectText"></span>
-              </div>
+                <!-- Conditional Subject -->
+                <div class="doc-subject-row" id="docSubjectRow" style="display: none;">
+                  <span id="docSubjectText"></span>
+                </div>
 
-              <!-- Salutation -->
-              <div class="doc-salutation" id="docSalutation">
-                تحية طيبة واحترام /
+                <!-- Salutation -->
+                <div class="doc-salutation" id="docSalutation">
+                  تحية طيبة واحترام /
+                </div>
               </div>
 
               <!-- Facts & Body -->
@@ -269,20 +272,23 @@
                 أعرض لعدالتكم الموقرة بأنه...
               </div>
 
-              <!-- Closing -->
-              <div class="doc-closing-salutation" id="docClosing">
-                ولعدالتكم فائق التقدير والاحترام
-              </div>
-
-              <!-- Document Footer: Date & Signature -->
-              <div class="doc-footer-row">
-                <div class="doc-date-col" id="docDate">
-                  التاريخ: 25 / 10 / 2026
+              <!-- Closing & Signature Block -->
+              <div class="doc-bottom-block">
+                <!-- Closing -->
+                <div class="doc-closing-salutation" id="docClosing">
+                  ولعدالتكم فائق التقدير والاحترام
                 </div>
-                <div class="doc-signature-col">
-                  <div class="doc-sig-role" id="docSigRole">المشتكي / وكيله</div>
-                  <div class="doc-sig-name" id="docSigName">المحامي سعد فراس أميل</div>
-                  <div class="signature-space"></div>
+
+                <!-- Document Footer: Date & Signature -->
+                <div class="doc-footer-row">
+                  <div class="doc-date-col" id="docDate">
+                    التاريخ: 25 / 10 / 2026
+                  </div>
+                  <div class="doc-signature-col">
+                    <div class="doc-sig-role" id="docSigRole">المشتكي / وكيله</div>
+                    <div class="doc-sig-name" id="docSigName">المحامي سعد فراس أميل</div>
+                    <div class="signature-space"></div>
+                  </div>
                 </div>
               </div>
 
@@ -365,6 +371,6 @@
 
   <!-- JavaScript Engine & External Libraries -->
   <script src="html2pdf.bundle.min.js"></script>
-  <script src="app.js?v=20261026_pdf1"></script>
+  <script src="app.js?v=20261026_fit2"></script>
 </body>
 </html>

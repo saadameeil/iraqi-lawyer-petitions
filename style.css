@@ -426,11 +426,11 @@ body {
   background: #ffffff;
   color: #000000;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Arabic", "SF Arabic", "Segoe UI", system-ui, sans-serif;
-  padding: 12mm 16mm 10mm 22mm; /* Tight margins for maximum space */
+  padding: 12mm 16mm 10mm 20mm; /* Balanced Iraqi court margins */
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -439,29 +439,36 @@ body {
 /* Document typography */
 .doc-header-basmala {
   text-align: center;
-  font-size: 18pt;
+  font-size: 17pt;
   font-weight: 700;
-  margin-bottom: 14pt;
+  margin-bottom: var(--paper-spacing, 8pt);
   color: #111;
   letter-spacing: 0.5px;
 }
 
+/* Header Group: Court + Parties + Subject + Salutation */
+.doc-header-block {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--paper-spacing, 8pt);
+}
+
 .doc-court-title {
-  font-size: 16pt;
+  font-size: var(--paper-court-size, 15.5pt);
   font-weight: 700;
-  margin-bottom: 8pt;
+  margin-bottom: var(--paper-spacing, 8pt);
   color: #000;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .doc-parties-box {
-  margin-bottom: 6pt;
-  line-height: 1.5;
+  margin-bottom: var(--paper-spacing, 6pt);
+  line-height: 1.45;
 }
 
 .doc-party-row {
-  margin-bottom: 6pt;
-  font-size: var(--paper-font-size);
+  margin-bottom: calc(var(--paper-spacing, 6pt) * 0.7);
+  font-size: var(--paper-font-size, 13.5pt);
 }
 
 .party-role {
@@ -478,59 +485,68 @@ body {
 
 .party-address {
   display: block;
-  font-size: 12.5pt;
+  font-size: var(--paper-sub-size, 12pt);
   color: #333;
   margin-top: 1pt;
   padding-right: 95px;
 }
 
 .doc-subject-row {
-  font-size: 15pt;
+  font-size: var(--paper-title-size, 14pt);
   font-weight: 700;
-  margin: 10pt 0;
+  margin: var(--paper-spacing, 8pt) 0;
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
 .doc-salutation {
-  font-size: var(--paper-font-size);
+  font-size: var(--paper-font-size, 13.5pt);
   font-weight: 700;
-  margin-bottom: 8pt;
+  margin-bottom: var(--paper-spacing, 6pt);
 }
 
+/* Body Content */
 .doc-body-content {
-  font-size: var(--paper-font-size);
-  line-height: var(--paper-line-height);
+  font-size: var(--paper-font-size, 13.5pt);
+  line-height: var(--paper-line-height, 1.55);
   text-align: justify;
   text-justify: inter-word;
   white-space: pre-wrap;
-  margin-bottom: 8pt;
+  word-break: break-word;
+  margin-bottom: var(--paper-spacing, 8pt);
+}
+
+/* Bottom Group: Closing + Date + Signature */
+.doc-bottom-block {
+  margin-top: auto; /* Always anchors smoothly at the bottom of the sheet */
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--paper-spacing, 6pt);
 }
 
 .doc-closing-salutation {
   text-align: center;
-  font-size: 13.5pt;
+  font-size: var(--paper-title-size, 13pt);
   font-weight: 700;
-  margin: 10pt 0 12pt 0;
+  margin: var(--paper-spacing, 6pt) 0 var(--paper-spacing, 8pt) 0;
 }
 
 .doc-footer-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-top: auto; /* Push to absolute bottom of the page */
-  padding-top: 8pt;
+  padding-top: 4pt;
 }
 
 .doc-date-col {
-  font-size: 13pt;
+  font-size: var(--paper-sub-size, 12pt);
   font-weight: 600;
   align-self: flex-end;
 }
 
 .doc-signature-col {
   text-align: center;
-  font-size: 13.5pt;
+  font-size: var(--paper-title-size, 13pt);
   font-weight: 700;
   min-width: 200px;
   display: flex;
@@ -539,20 +555,21 @@ body {
 }
 
 .doc-sig-role {
-  font-size: 13.5pt;
+  font-size: var(--paper-title-size, 13pt);
   font-weight: 700;
   color: #000;
   margin-bottom: 2pt;
 }
 
 .doc-sig-name {
-  font-size: 13.5pt;
+  font-size: var(--paper-title-size, 13pt);
   font-weight: 700;
   color: #000;
 }
 
 .signature-space {
-  height: 35pt; /* مساحة بيضاء صافية وواسعة للتوقيع بالقلم أو الختم بدون نصوص */
+  height: calc(var(--paper-spacing, 8pt) * 3.5);
+  min-height: 25pt;
   width: 100%;
 }
 

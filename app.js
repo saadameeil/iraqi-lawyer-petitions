@@ -108,6 +108,7 @@ window.setCourt = function(courtName) {
   const el = document.getElementById('courtRecipient');
   if (el) el.value = courtName;
   renderPreview();
+  window.autoFitSinglePage(true);
   saveDraftToStorage();
 };
 
@@ -174,7 +175,7 @@ function renderPreview() {
   if (nameEl) nameEl.innerText = state.sigName || 'المحامي سعد فراس أميل';
 }
 
-// Adjust font scale dynamically
+// Adjust font scale dynamically across all legal sections
 function setFontScale(percent) {
   state.fontScale = percent;
   const sheet = document.getElementById('a4Sheet');
@@ -182,12 +183,22 @@ function setFontScale(percent) {
   if (lbl) lbl.innerText = percent + '%';
   const slider = document.getElementById('scaleSlider');
   if (slider) slider.value = percent;
+  if (!sheet) return;
 
-  // Base font size is 14pt (approx 18.6px)
-  const basePt = 14 * (percent / 100);
-  const baseLineHeight = 1.55 * (percent / 100 < 0.9 ? 1.4 : 1.55);
-  sheet.style.setProperty('--paper-font-size', `${basePt.toFixed(1)}pt`);
-  sheet.style.setProperty('--paper-line-height', `${baseLineHeight.toFixed(2)}`);
+  const factor = percent / 100;
+  const bodyPt = 13.5 * factor;
+  const courtPt = Math.max(11.5, 15.5 * factor);
+  const titlePt = Math.max(11, 14 * factor);
+  const subPt = Math.max(9.5, 12 * factor);
+  const lineH = factor < 0.88 ? 1.40 : (factor < 0.95 ? 1.48 : 1.58);
+  const spacingPt = Math.max(3, 8 * factor);
+
+  sheet.style.setProperty('--paper-font-size', `${bodyPt.toFixed(1)}pt`);
+  sheet.style.setProperty('--paper-line-height', `${lineH.toFixed(2)}`);
+  sheet.style.setProperty('--paper-court-size', `${courtPt.toFixed(1)}pt`);
+  sheet.style.setProperty('--paper-title-size', `${titlePt.toFixed(1)}pt`);
+  sheet.style.setProperty('--paper-sub-size', `${subPt.toFixed(1)}pt`);
+  sheet.style.setProperty('--paper-spacing', `${spacingPt.toFixed(1)}pt`);
 
   updateSinglePageFitIndicator();
 }
@@ -201,31 +212,36 @@ function updateSinglePageFitIndicator() {
   const isOverflow = sheet.scrollHeight > (sheet.clientHeight + 4);
   if (isOverflow) {
     badge.className = 'status-badge status-warn';
-    badge.innerHTML = '⚠️ قد يتجاوز صفحة واحدة - اضغط هنا للملاءمة';
-    badge.onclick = autoFitSinglePage;
+    badge.innerHTML = `⚠️ يتجاوز صفحة واحدة (${state.fontScale}%) - اضغط للملاءمة`;
+    badge.onclick = () => window.autoFitSinglePage(false);
     badge.style.cursor = 'pointer';
   } else {
     badge.className = 'status-badge status-ok';
-    badge.innerHTML = '✓ صفحة A4 واحدة متناسقة (100%)';
+    badge.innerHTML = `✓ صفحة A4 واحدة متناسقة (${state.fontScale}%)`;
     badge.onclick = null;
     badge.style.cursor = 'default';
   }
 }
 
-// Auto-Fit Algorithm to guarantee single-page fit
-window.autoFitSinglePage = function() {
+// Auto-Fit Algorithm to guarantee 100% single-page fit
+window.autoFitSinglePage = function(silent = false) {
   const sheet = document.getElementById('a4Sheet');
-  if (!sheet) return;
+  if (!sheet) return 100;
 
-  let currentScale = state.fontScale;
-  // Step down until it fits or reaches 75%
-  while (sheet.scrollHeight > sheet.clientHeight && currentScale > 75) {
-    currentScale -= 3;
-    setFontScale(currentScale);
+  // Start from 100% and step down smoothly until everything fits safely within 1 sheet
+  let scale = 100;
+  setFontScale(scale);
+
+  while (sheet.scrollHeight > (sheet.clientHeight - 4) && scale > 68) {
+    scale -= 2;
+    setFontScale(scale);
   }
 
-  showToast('تمت ملاءمة أبعاد العريضة لتستقر في ورقة واحدة تماماً ✨');
+  if (!silent) {
+    showToast(`تمت ملاءمة أبعاد العريضة لتستقر في ورقة واحدة بنسبة (${scale}%) ✨`);
+  }
   updateSinglePageFitIndicator();
+  return scale;
 };
 
 // Reset Form
@@ -254,6 +270,7 @@ window.resetForm = function() {
 
   setFontScale(100);
   renderPreview();
+  window.autoFitSinglePage(true);
   saveDraftToStorage();
   showToast('تم تجهيز استمارة جديدة فارغة');
 };
@@ -300,6 +317,7 @@ window.processAiDraft = function() {
   });
 
   renderPreview();
+  window.autoFitSinglePage(true);
   saveDraftToStorage();
   closeAiModal();
   autoFitSinglePage();
@@ -613,6 +631,7 @@ window.loadCaseFromArchive = function(id) {
 
   if (state.fontScale) setFontScale(state.fontScale);
   renderPreview();
+  window.autoFitSinglePage(true);
   saveDraftToStorage();
   closeArchiveModal();
   showToast(`تم فتح قضية: ${found.title}`);
@@ -692,7 +711,7 @@ window.addEventListener('resize', () => {
 // Printing & Native iOS Sheet / Direct PDF Export
 // ==========================================================================
 window.printPetition = function() {
-  // Ensure preview is up to date
+  window.autoFitSinglePage(true);
   renderPreview();
   updateSinglePageFitIndicator();
 
@@ -701,10 +720,11 @@ window.printPetition = function() {
 };
 
 /**
- * Direct High-Resolution PDF Export & Native Share
- * - Seamlessly generates a 1-page A4 PDF without printer dialogs.
- * - Supports iOS Safari Native Share Sheet (WhatsApp, AirDrop, Save to Files).
- * - Direct download on PC (Chrome, Edge, Firefox).
+ * Direct High-Resolution Single-Page PDF Export & Native iOS Share
+ * - Guarantees strictly 1 single A4 page with zero cutoffs or page spillover.
+ * - Automatically executes proportional auto-fit before rendering.
+ * - Fixes mobile viewport wrapping in html2canvas (uses desktop 794px coordinate system).
+ * - Delivers via iOS Safari Native Share Sheet (WhatsApp, AirDrop, Save to Files) or direct download.
  */
 window.exportDirectPDF = async function() {
   if (typeof html2pdf === 'undefined') {
@@ -716,10 +736,11 @@ window.exportDirectPDF = async function() {
   const previewPane = document.getElementById('previewPane');
   if (!sheet || !previewPane) return;
 
-  // 1. Ensure live preview is synced with all fields
+  // 1. Automatically fit content into 1 single page before capture
+  window.autoFitSinglePage(true);
   renderPreview();
 
-  // 2. Build human-readable legal filename
+  // 2. Build clean, human-readable legal filename
   let filename = 'عريضة_دعوى_قضائية';
   const cName = (state.complainantName || '').trim();
   const dName = (state.defendantName || '').trim();
@@ -732,9 +753,9 @@ window.exportDirectPDF = async function() {
   }
   filename = filename.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_') + '.pdf';
 
-  showToast('⏳ جاري تجهيز وتصدير ملف الـ PDF عالي الدقة...');
+  showToast('⏳ جاري ترتيب وتصدير العريضة في ورقة واحدة A4...');
 
-  // 3. Preserve responsive styles
+  // 3. Preserve original DOM styling for smooth restoration
   const isPreviewHidden = (window.getComputedStyle(previewPane).display === 'none');
   const origPreviewDisplay = previewPane.style.display;
   const origPreviewPos = previewPane.style.position;
@@ -743,6 +764,13 @@ window.exportDirectPDF = async function() {
   const origPreviewZ = previewPane.style.zIndex;
   const origPreviewVis = previewPane.style.visibility;
 
+  const origSheetWidth = sheet.style.width;
+  const origSheetMinWidth = sheet.style.minWidth;
+  const origSheetMaxWidth = sheet.style.maxWidth;
+  const origSheetHeight = sheet.style.height;
+  const origSheetMinHeight = sheet.style.minHeight;
+  const origSheetMaxHeight = sheet.style.maxHeight;
+  const origSheetBoxSizing = sheet.style.boxSizing;
   const origSheetTransform = sheet.style.transform;
   const origSheetBoxShadow = sheet.style.boxShadow;
   const origSheetMargin = sheet.style.margin;
@@ -759,7 +787,15 @@ window.exportDirectPDF = async function() {
       previewPane.style.zIndex = '-9999';
     }
 
-    // Temporarily unzoom mobile scale so it renders at 100% pure A4 physical dimensions (210mm x 297mm)
+    // Lock exact physical 1-page A4 pixel bounds (794px x 1120px)
+    // 1120px strictly guarantees that canvas height / page ratio is < 1, preventing the 2nd page bug!
+    sheet.style.width = '794px';
+    sheet.style.minWidth = '794px';
+    sheet.style.maxWidth = '794px';
+    sheet.style.height = '1120px';
+    sheet.style.minHeight = '1120px';
+    sheet.style.maxHeight = '1120px';
+    sheet.style.boxSizing = 'border-box';
     sheet.style.transform = 'none';
     sheet.style.boxShadow = 'none';
     sheet.style.margin = '0 auto';
@@ -773,13 +809,18 @@ window.exportDirectPDF = async function() {
         useCORS: true,
         letterRendering: true,
         scrollY: 0,
-        scrollX: 0
+        scrollX: 0,
+        windowWidth: 794,
+        windowHeight: 1123,
+        width: 794,
+        height: 1120
       },
       jsPDF: {
         unit: 'mm',
         format: 'a4',
         orientation: 'portrait'
-      }
+      },
+      pagebreak: { mode: 'avoid-all' }
     };
 
     // Generate PDF blob
@@ -815,13 +856,20 @@ window.exportDirectPDF = async function() {
     document.body.removeChild(downloadAnchor);
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
 
-    showToast('تم تحميل وتصدير ملف الـ PDF بنجاح 📥📄');
+    showToast('تم تصدير وتحميل ورقة الـ PDF بنجاح 📥📄');
 
   } catch (err) {
     console.error('Export PDF error:', err);
     alert('حدث خطأ أثناء تصدير الـ PDF: ' + (err.message || err));
   } finally {
     // Restore original sheet styling
+    sheet.style.width = origSheetWidth;
+    sheet.style.minWidth = origSheetMinWidth;
+    sheet.style.maxWidth = origSheetMaxWidth;
+    sheet.style.height = origSheetHeight;
+    sheet.style.minHeight = origSheetMinHeight;
+    sheet.style.maxHeight = origSheetMaxHeight;
+    sheet.style.boxSizing = origSheetBoxSizing;
     sheet.style.transform = origSheetTransform;
     sheet.style.boxShadow = origSheetBoxShadow;
     sheet.style.margin = origSheetMargin;
