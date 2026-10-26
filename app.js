@@ -6,6 +6,7 @@
 // State Object
 const state = {
   courtRecipient: 'السيد قاضي محكمة تحقيق بغداد الجديدة المحترم',
+  caseNumber: '',
   complainantName: '',
   complainantAddress: '',
   defendantName: '',
@@ -67,6 +68,7 @@ function updateMobileSheetZoom() {
 function bindInputEvents() {
   const inputs = [
     { id: 'courtRecipient', key: 'courtRecipient' },
+    { id: 'caseNumber', key: 'caseNumber' },
     { id: 'complainantName', key: 'complainantName' },
     { id: 'complainantAddress', key: 'complainantAddress' },
     { id: 'defendantName', key: 'defendantName' },
@@ -117,6 +119,17 @@ function renderPreview() {
   // Court Header
   document.getElementById('docCourt').innerText = state.courtRecipient || 'السيد قاضي محكمة ... المحترم';
 
+  // Case Number
+  const caseNumRow = document.getElementById('docCaseNumberRow');
+  const caseNumText = document.getElementById('docCaseNumberText');
+  const hasCaseNum = !!(state.caseNumber && state.caseNumber.trim());
+  if (hasCaseNum) {
+    if (caseNumText) caseNumText.innerText = state.caseNumber.trim();
+    if (caseNumRow) caseNumRow.style.display = 'flex';
+  } else {
+    if (caseNumRow) caseNumRow.style.display = 'none';
+  }
+
   // Parties Box Logic: Completely hide rows and container if names are empty
   const partiesBox = document.getElementById('docPartiesBox');
   const cRow = document.getElementById('docComplainantRow');
@@ -125,6 +138,30 @@ function renderPreview() {
   const cAddrEl = document.getElementById('docComplainantAddress');
   const dNameEl = document.getElementById('docDefendantName');
   const dAddrEl = document.getElementById('docDefendantAddress');
+  const cRoleEl = document.getElementById('docComplainantRole');
+  const dRoleEl = document.getElementById('docDefendantRole');
+
+  // Smart dynamic role detection based on court or subject
+  const courtText = (state.courtRecipient || '').toLowerCase();
+  const subjTextLow = (state.subject || '').toLowerCase();
+  const caseTextLow = (state.caseNumber || '').toLowerCase();
+
+  let compRoleLabel = 'المشتكي:';
+  let defRoleLabel = 'المشكو منه:';
+
+  if (courtText.includes('بداءة') || courtText.includes('كشف') || subjTextLow.includes('كشف') || caseTextLow.includes('كشف') || subjTextLow.includes('مستعجل')) {
+    compRoleLabel = 'المستدعي:';
+    defRoleLabel = 'المستدعى ضده:';
+  } else if (courtText.includes('أحوال') || courtText.includes('بداءة')) {
+    compRoleLabel = 'المدعي:';
+    defRoleLabel = 'المدعى عليه:';
+  } else if (courtText.includes('تنفيذ')) {
+    compRoleLabel = 'طالب التنفيذ:';
+    defRoleLabel = 'المنفذ ضده:';
+  }
+
+  if (cRoleEl) cRoleEl.innerText = compRoleLabel;
+  if (dRoleEl) dRoleEl.innerText = defRoleLabel;
 
   const hasComplainant = !!(state.complainantName && state.complainantName.trim());
   const hasDefendant = !!(state.defendantName && state.defendantName.trim());
@@ -160,7 +197,7 @@ function renderPreview() {
   }
 
   if (partiesBox) {
-    partiesBox.style.display = (hasComplainant || hasDefendant) ? 'block' : 'none';
+    partiesBox.style.display = (hasComplainant || hasDefendant || hasCaseNum) ? 'block' : 'none';
   }
 
   // Conditional Subject Field (الموضوع)
@@ -178,10 +215,33 @@ function renderPreview() {
   // Salutation
   document.getElementById('docSalutation').innerText = state.salutation || 'تحية طيبة واحترام /';
 
-  // Body
+  // Body text sanitization for Iraqi legal typography
   const bodyEl = document.getElementById('docBody');
   if (state.bodyText && state.bodyText.trim()) {
-    bodyEl.innerText = state.bodyText;
+    let sanitizedBody = state.bodyText.trim();
+    
+    // Auto-remove accidental trailing role from the very end of the body
+    sanitizedBody = sanitizedBody.replace(/\n\s*(المستدعي|المدعي|المدعية|المشتكي|المشتكية|طالب التنفيذ)\s*$/i, '');
+    
+    // Normalize commas and semicolons to Arabic standard
+    sanitizedBody = sanitizedBody
+      .replace(/,\s*/g, '، ')
+      .replace(/;\s*/g, '؛ ')
+      .replace(/\s+([،؛.])/g, '$1')
+      .replace(/([،؛])(?=[^\s\d])/g, '$1 ');
+      
+    // Fix flipped parentheses like "أصالة) عن(نفسه"
+    sanitizedBody = sanitizedBody
+      .replace(/أصالة\)\s*عن\(نفسه/g, 'أصالة (عن نفسه)')
+      .replace(/بـ\s*نسختين\)/g, 'بـ (نسختين)')
+      .replace(/([^\s(]+)\)\s*([^\s)]+)\(/g, '$1 ($2)');
+      
+    // Fix dots inside Arabic words like "بصورة.مستعجلة"
+    sanitizedBody = sanitizedBody
+      .replace(/([\u0600-\u06FF])\.([\u0600-\u06FF])/g, '$1. $2')
+      .replace(/^\.([\u0600-\u06FF])/gm, '$1');
+
+    bodyEl.innerText = sanitizedBody;
   } else {
     bodyEl.innerText = 'أعرض لعدالتكم الموقرة بأنه...\n(يرجى كتابة وقائع الدعوى والطلبات في حقل النص أو استخدام خاصية التحليل والتعبئة الذكية).';
   }
@@ -189,8 +249,21 @@ function renderPreview() {
   // Closing - positioned naturally right after body
   document.getElementById('docClosing').innerText = state.closingSalutation || 'ولعدالتكم فائق التقدير والاحترام';
 
-  // Date
-  document.getElementById('docDate').innerText = 'التاريخ: ' + (state.petitionDate || getTodayFormattedArabic());
+  // Date rendering with strict BiDi protection
+  const rawDate = (state.petitionDate || getTodayFormattedArabic()).trim();
+  let cleanDate = rawDate.replace(/\s*\/\s*/g, ' / ');
+  if (!cleanDate.endsWith('م') && !cleanDate.endsWith('هـ')) {
+    cleanDate += ' م';
+  }
+  const dateValEl = document.getElementById('docDateVal');
+  if (dateValEl) {
+    dateValEl.innerHTML = `&rlm;${cleanDate}&rlm;`;
+  } else {
+    const docDateEl = document.getElementById('docDate');
+    if (docDateEl) {
+      docDateEl.innerHTML = `<span class="doc-date-lbl">التاريخ: </span><span class="doc-date-val">&rlm;${cleanDate}&rlm;</span>`;
+    }
+  }
 
   // Signature (Role on top, Name below it)
   const roleEl = document.getElementById('docSigRole');
@@ -272,6 +345,7 @@ window.autoFitSinglePage = function(silent = false) {
 window.resetForm = function() {
   if (!confirm('هل تريد مسح الحقول وبدء عريضة جديدة؟')) return;
   state.courtRecipient = 'السيد قاضي محكمة تحقيق بغداد الجديدة المحترم';
+  state.caseNumber = '';
   state.complainantName = '';
   state.complainantAddress = '';
   state.defendantName = '';
@@ -284,7 +358,7 @@ window.resetForm = function() {
   state.fontScale = 100;
 
   // Repopulate form
-  const inputs = ['courtRecipient', 'complainantName', 'complainantAddress', 
+  const inputs = ['courtRecipient', 'caseNumber', 'complainantName', 'complainantAddress', 
                   'defendantName', 'defendantAddress', 'subject', 'bodyText', 
                   'petitionDate', 'sigRole', 'sigName'];
   inputs.forEach(id => {
@@ -322,6 +396,7 @@ window.processAiDraft = function() {
   
   // Apply parsed results to state
   if (parsed.court) state.courtRecipient = parsed.court;
+  if (parsed.caseNumber) state.caseNumber = parsed.caseNumber;
   if (parsed.complainant) state.complainantName = parsed.complainant;
   if (parsed.complainantAddress) state.complainantAddress = parsed.complainantAddress;
   if (parsed.defendant) state.defendantName = parsed.defendant;
@@ -333,7 +408,7 @@ window.processAiDraft = function() {
   if (parsed.date) state.petitionDate = parsed.date;
 
   // Update inputs
-  ['courtRecipient', 'complainantName', 'complainantAddress', 
+  ['courtRecipient', 'caseNumber', 'complainantName', 'complainantAddress', 
    'defendantName', 'defendantAddress', 'subject', 'bodyText', 
    'petitionDate', 'sigRole', 'sigName'].forEach(id => {
     const el = document.getElementById(id);
@@ -363,13 +438,15 @@ function stripDiacritics(str) {
 function parseLegalText(text) {
   const result = {
     court: null,
+    caseNumber: null,
     complainant: null,
     complainantAddress: null,
     defendant: null,
     defendantAddress: null,
     subject: null,
     body: null,
-    signature: null,
+    sigRole: null,
+    sigName: null,
     date: null
   };
 
@@ -398,9 +475,15 @@ function parseLegalText(text) {
       continue;
     }
 
-    // 2. Complainant Name
-    if (!result.complainant && /^(المشتكي|المشتكية|المدعي|المدعية|طالب التنفيذ|المستأنف)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
-      const match = originalLine.match(/^(المشتكي|المشتكية|المدعي|المدعية|طالب التنفيذ|المستأنف)[\s:\/ـ-]+(.+)$/i);
+    // 1.5. Case / Dossier Number
+    if (!result.caseNumber && /^(الدعوى|رقم الدعوى|إضبارة|رقم الإضبارة)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
+      result.caseNumber = originalLine.replace(/^(الدعوى|رقم الدعوى|إضبارة|رقم الإضبارة)[\s:\/ـ-]+/i, '').trim();
+      continue;
+    }
+
+    // 2. Complainant / Petitioner Name
+    if (!result.complainant && /^(المشتكي|المشتكية|المدعي|المدعية|المستدعي|المستدعية|طالب الكشف|طالب التنفيذ|المستأنف)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
+      const match = originalLine.match(/^(المشتكي|المشتكية|المدعي|المدعية|المستدعي|المستدعية|طالب الكشف|طالب التنفيذ|المستأنف)[\s:\/ـ-]+(.+)$/i);
       result.complainant = match[2].trim();
       
       // Inline address after / or -
@@ -415,14 +498,14 @@ function parseLegalText(text) {
     }
 
     // Complainant Address if on immediate next line
-    if (result.complainant && !result.complainantAddress && !result.defendant && addressRegex.test(cleanLine) && !/^(المشكو|المدعى)/.test(cleanLine)) {
+    if (result.complainant && !result.complainantAddress && !result.defendant && addressRegex.test(cleanLine) && !/^(المشكو|المدعى|المستدعى)/.test(cleanLine)) {
       result.complainantAddress = originalLine.replace(/^.*?(الساكن|الساكنة|عنوانه|عنوانها|محل سكنه|محل سكنها|محل عمله|مقرها|العنوان|الهاتف)[\s:\/ـ-]*/i, '').trim();
       continue;
     }
 
-    // 3. Defendant Name
-    if (!result.defendant && /^(المشكو منه|المشكو منها|المدعى عليه|المدعى عليها|المنفذ ضده|المستأنف عليه)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
-      const match = originalLine.match(/^(المشكو منه|المشكو منها|المدعى عليه|المدعى عليها|المنفذ ضده|المستأنف عليه)[\s:\/ـ-]+(.+)$/i);
+    // 3. Defendant / Respondent Name
+    if (!result.defendant && /^(المشكو منه|المشكو منها|المدعى عليه|المدعى عليها|المستدعى ضده|المستدعى ضدها|المطلوب الكشف ضده|المنفذ ضده|المستأنف عليه)[\s:\/ـ-]+(.+)$/i.test(cleanLine)) {
+      const match = originalLine.match(/^(المشكو منه|المشكو منها|المدعى عليه|المدعى عليها|المستدعى ضده|المستدعى ضدها|المطلوب الكشف ضده|المنفذ ضده|المستأنف عليه)[\s:\/ـ-]+(.+)$/i);
       result.defendant = match[2].trim();
 
       // Inline address after / or -
@@ -461,10 +544,13 @@ function parseLegalText(text) {
     }
 
     // 6. Signature block (in the last 4 lines)
-    if (i >= rawLines.length - 4 && /(المشتكي|المشتكية|المدعي|المدعية|وكيله|وكيل|المحامي|مقدم الطلب|التوقيع)/i.test(cleanLine)) {
-      if (/المحامي/i.test(originalLine)) {
+    if (i >= rawLines.length - 4 && /(المشتكي|المشتكية|المدعي|المدعية|المستدعي|المستدعية|وكيله|وكيل|المحامي|مقدم الطلب|التوقيع)/i.test(cleanLine)) {
+      if (/أصالة\s*عن\s*نفسه/i.test(originalLine)) {
+        result.sigRole = 'المستدعي (أصالة عن نفسه)';
+        result.sigName = 'المحامي سعد فراس أميل';
+      } else if (/المحامي/i.test(originalLine)) {
         const parts = originalLine.split(/(?=المحامي)/i);
-        result.sigRole = parts[0].replace(/[\/ـ:-]+$/, '').trim() || 'المشتكي / وكيله';
+        result.sigRole = parts[0].replace(/[\/ـ:-]+$/, '').trim() || 'المستدعي / وكيله';
         result.sigName = parts.slice(1).join('').trim() || 'المحامي سعد فراس أميل';
       } else {
         result.sigRole = originalLine;
@@ -646,7 +732,7 @@ window.loadCaseFromArchive = function(id) {
   }
 
   // Update inputs
-  ['courtRecipient', 'complainantName', 'complainantAddress', 
+  ['courtRecipient', 'caseNumber', 'complainantName', 'complainantAddress', 
    'defendantName', 'defendantAddress', 'subject', 'bodyText', 
    'petitionDate', 'sigRole', 'sigName'].forEach(k => {
     const el = document.getElementById(k);

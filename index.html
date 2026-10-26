@@ -15,7 +15,7 @@
   <meta name="theme-color" content="#0b1120">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=20261026_opt5">
+  <link rel="stylesheet" href="style.css?v=20261027_opt6">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -100,6 +100,14 @@
               <span>أطراف الدعوى والتبليغات القضائية</span>
             </div>
           </div>
+
+          <!-- Case / Dossier Number -->
+          <div class="form-group">
+            <label class="form-label">رقم الدعوى / الإضبارة <span class="hint">(اختياري: مثال: 74 / كشف مستعجل / 2026)</span></label>
+            <input type="text" id="caseNumber" class="form-input" placeholder="مثال: 74 / كشف مستعجل / 2026 (أو اتركه فارغاً)">
+          </div>
+
+          <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 12px 0;"></div>
 
           <!-- Complainant -->
           <div class="form-group">
@@ -244,13 +252,18 @@
 
                 <!-- Parties Box (Conditional: hidden if both are empty) -->
                 <div class="doc-parties-box" id="docPartiesBox" style="display: none;">
+                  <!-- Optional Case Number -->
+                  <div class="doc-case-number-row" id="docCaseNumberRow" style="display: none;">
+                    <span class="case-number-label">الدعوى:</span>
+                    <span class="case-number-value" id="docCaseNumberText"></span>
+                  </div>
                   <div class="doc-party-row" id="docComplainantRow" style="display: none;">
-                    <span class="party-role">المشتكي:</span>
+                    <span class="party-role" id="docComplainantRole">المشتكي:</span>
                     <span class="party-name" id="docComplainantName"></span>
                     <span class="party-address" id="docComplainantAddress" style="display: none;"></span>
                   </div>
                   <div class="doc-party-row" id="docDefendantRow" style="display: none;">
-                    <span class="party-role">المشكو منه:</span>
+                    <span class="party-role" id="docDefendantRole">المشكو منه:</span>
                     <span class="party-name" id="docDefendantName"></span>
                     <span class="party-address" id="docDefendantAddress" style="display: none;"></span>
                   </div>
@@ -282,7 +295,8 @@
                 <!-- Document Footer: Date & Signature -->
                 <div class="doc-footer-row">
                   <div class="doc-date-col" id="docDate">
-                    التاريخ: 25 / 10 / 2026
+                    <span class="doc-date-lbl">التاريخ:</span>
+                    <span class="doc-date-val" id="docDateVal">25 / 10 / 2026 م</span>
                   </div>
                   <div class="doc-signature-col">
                     <div class="doc-sig-role" id="docSigRole">المشتكي / وكيله</div>
@@ -370,7 +384,7 @@
   </div>
 
   <!-- JavaScript Engine & External Libraries -->
-  <script src="html2pdf.bundle.min.js?v=20261026_opt5"></script>
-  <script src="app.js?v=20261026_opt5"></script>
+  <script src="html2pdf.bundle.min.js?v=20261027_opt6"></script>
+  <script src="app.js?v=20261027_opt6"></script>
 </body>
 </html>

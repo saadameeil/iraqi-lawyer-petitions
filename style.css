@@ -426,7 +426,7 @@ body {
   background: #ffffff;
   color: #000000;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Arabic", "SF Arabic", "Segoe UI", system-ui, sans-serif;
-  padding: 12mm 16mm 10mm 20mm; /* Balanced Iraqi court margins */
+  padding: 14mm 24mm 12mm 16mm; /* 24mm right margin for Iraqi court docket hole-punching */
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
@@ -434,6 +434,9 @@ body {
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: isolate;
 }
 
 /* Document typography */
@@ -544,6 +547,41 @@ body {
   font-size: var(--paper-sub-size, 12pt);
   font-weight: 600;
   align-self: flex-end;
+  direction: rtl !important;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+}
+
+.doc-date-lbl {
+  margin-left: 4px;
+  unicode-bidi: isolate;
+}
+
+.doc-date-val {
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+
+.doc-case-number-row {
+  margin-bottom: 4pt;
+  font-size: var(--paper-title-size, 12.5pt);
+  font-weight: 700;
+  color: #111;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.case-number-label {
+  font-weight: 700;
+  color: #000;
+}
+
+.case-number-value {
+  font-weight: 600;
+  color: #111;
+  direction: rtl;
+  unicode-bidi: isolate;
 }
 
 .doc-signature-col {
@@ -784,7 +822,7 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 15mm 10mm 20mm !important; /* Tight print margins */
+    margin: 14mm 24mm 12mm 16mm !important; /* 24mm right margin for Iraqi court docket hole-punching */
   }
 
   html, body {
