@@ -32,14 +32,24 @@ function getTodayFormattedArabic() {
 }
 
 // Initialize on DOM Load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   loadDraftFromStorage();
   bindInputEvents();
   renderPreview();
   setupTabEvents();
   updateSinglePageFitIndicator();
   updateMobileSheetZoom();
-  syncServerArchive();
+  await syncServerArchive();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('load') || urlParams.get('case');
+  if (targetId) {
+    if (targetId === 'urgent' || targetId === 'urgent_inspection_today_2026' || targetId === 'today') {
+      window.loadUrgentToday();
+    } else {
+      window.loadCaseFromArchive(targetId);
+    }
+  }
 });
 
 // Update Mobile Zoom so A4 sheet fits horizontally on small screens
@@ -748,6 +758,13 @@ window.loadCaseFromArchive = function(id) {
 
   if (window.innerWidth < 1024) {
     switchTab('editor');
+  }
+};
+
+window.loadUrgentToday = function() {
+  window.loadCaseFromArchive('urgent_inspection_today_2026');
+  if (window.innerWidth < 1024) {
+    switchTab('preview');
   }
 };
 
