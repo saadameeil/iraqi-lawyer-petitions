@@ -18,7 +18,8 @@ const state = {
   sigRole: 'المشتكي / وكيله',
   sigName: 'المحامي سعد فراس أميل',
   petitionDate: getTodayFormattedArabic(),
-  fontScale: 100,
+  fontScale: 125,
+    userManualScale: true,
   activeTab: 'editor' // 'editor' | 'preview'
 };
 
@@ -283,32 +284,61 @@ function renderPreview() {
 }
 
 // Adjust font scale dynamically across all legal sections
-function setFontScale(percent) {
-  state.fontScale = percent;
-  const sheet = document.getElementById('a4Sheet');
-  const lbl = document.getElementById('scaleLabel');
-  if (lbl) lbl.innerText = percent + '%';
-  const slider = document.getElementById('scaleSlider');
-  if (slider) slider.value = percent;
-  if (!sheet) return;
 
-  const factor = percent / 100;
-  const bodyPt = 13.5 * factor;
-  const courtPt = Math.max(11.5, 15.5 * factor);
-  const titlePt = Math.max(11, 14 * factor);
-  const subPt = Math.max(9.5, 12 * factor);
-  const lineH = factor < 0.88 ? 1.40 : (factor < 0.95 ? 1.48 : 1.58);
-  const spacingPt = Math.max(3, 8 * factor);
+  // User manual font scale step (+/-)
+  window.changeFontScaleDelta = function(delta) {
+    state.userManualScale = true;
+    let current = state.fontScale || 125;
+    let next = Math.max(70, Math.min(160, current + delta));
+    setFontScale(next, true);
+    saveDraftToStorage();
+  };
 
-  sheet.style.setProperty('--paper-font-size', `${bodyPt.toFixed(1)}pt`);
-  sheet.style.setProperty('--paper-line-height', `${lineH.toFixed(2)}`);
-  sheet.style.setProperty('--paper-court-size', `${courtPt.toFixed(1)}pt`);
-  sheet.style.setProperty('--paper-title-size', `${titlePt.toFixed(1)}pt`);
-  sheet.style.setProperty('--paper-sub-size', `${subPt.toFixed(1)}pt`);
-  sheet.style.setProperty('--paper-spacing', `${spacingPt.toFixed(1)}pt`);
+  // User preset font scale (e.g. 100, 115, 125, 140)
+  window.setFontPreset = function(percent) {
+    state.userManualScale = true;
+    setFontScale(percent, true);
+    saveDraftToStorage();
+  };
 
-  updateSinglePageFitIndicator();
-}
+function setFontScale(percent, isManual = true) {
+    if (isManual) {
+      state.userManualScale = true;
+    }
+    state.fontScale = percent;
+    const sheet = document.getElementById('a4Sheet');
+    
+    // Sync all labels
+    ['scaleLabel', 'scaleLabelEditor'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerText = percent + '%';
+    });
+    
+    // Sync all sliders
+    ['scaleSlider', 'scaleSliderEditor'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = percent;
+    });
+
+    if (!sheet) return;
+
+    const factor = percent / 100;
+    const bodyPt = 14.0 * factor;
+    const courtPt = Math.max(12, 16.5 * factor);
+    const titlePt = Math.max(11.5, 15.0 * factor);
+    const subPt = Math.max(10, 12.5 * factor);
+    const lineH = factor < 0.88 ? 1.38 : (factor < 0.95 ? 1.45 : (factor > 1.25 ? 1.60 : 1.55));
+    const spacingPt = Math.max(3, 8 * factor);
+
+    sheet.style.setProperty('--paper-font-size', `${bodyPt.toFixed(1)}pt`);
+    sheet.style.setProperty('--paper-line-height', `${lineH.toFixed(2)}`);
+    sheet.style.setProperty('--paper-court-size', `${courtPt.toFixed(1)}pt`);
+    sheet.style.setProperty('--paper-title-size', `${titlePt.toFixed(1)}pt`);
+    sheet.style.setProperty('--paper-sub-size', `${subPt.toFixed(1)}pt`);
+    sheet.style.setProperty('--paper-spacing', `${spacingPt.toFixed(1)}pt`);
+
+    updateSinglePageFitIndicator();
+  }
 
 // Check if A4 content overflows single sheet
 function updateSinglePageFitIndicator() {

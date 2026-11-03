@@ -167,6 +167,12 @@ body {
   transform: scale(0.97);
 }
 
+.btn-xs {
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+}
+
 .btn-sm {
   padding: 6px 10px;
   font-size: 12px;
@@ -822,7 +828,7 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 14mm 24mm 12mm 16mm !important; /* 24mm right margin for Iraqi court docket hole-punching */
+    margin: 10mm 20mm 10mm 14mm !important; /* 20mm right margin for court docket hole-punching */
   }
 
   html, body {
@@ -831,8 +837,7 @@ body {
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
-    height: 100% !important;
-    font-size: 14pt !important;
+    height: auto !important;
   }
 
   .no-print, 
@@ -876,10 +881,12 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    max-height: 100% !important;
-    height: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    min-height: auto !important;
     transform: none !important;
-    page-break-after: avoid !important;
-    page-break-inside: avoid !important;
+    overflow: visible !important;
+    page-break-after: avoid;
+    page-break-inside: auto;
   }
 }
